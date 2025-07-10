@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound, useParams } from "next/navigation";
@@ -15,6 +15,8 @@ import { useAuth } from "@/context/AuthContext";
 import * as signalR from "@microsoft/signalr";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorDisplay from "@/components/ErrorDisplay";
 
 type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
@@ -26,34 +28,37 @@ export default function ResultsPage() {
   const [election, setElection] = useState<Election | null>(null);
   const [results, setResults] = useState<VoteResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   
-  useEffect(() => {
+  const fetchInitialData = useCallback(async () => {
     if (isNaN(electionId)) {
-        notFound();
-        return;
+      notFound();
+      return;
     }
-    
-    if(!authLoading) {
-      const fetchInitialData = async () => {
-        setLoading(true);
-        try {
-          const electionData = await getElectionById(electionId, token);
-          setElection(electionData);
+    setLoading(true);
+    setError(null);
+    try {
+      const electionData = await getElectionById(electionId, token);
+      setElection(electionData);
 
-          if (token) {
-              const resultsData = await getElectionResults(electionId, token);
-              setResults(resultsData);
-          }
-        } catch (error) {
-          console.error("Failed to fetch initial data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
+      if (token) {
+        const resultsData = await getElectionResults(electionId, token);
+        setResults(resultsData);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch initial data:", err);
+      setError(err.message || "Could not load election results.");
+    } finally {
+      setLoading(false);
+    }
+  }, [electionId, token]);
+
+  useEffect(() => {
+    if(!authLoading) {
       fetchInitialData();
     }
-  }, [electionId, token, authLoading]);
+  }, [electionId, authLoading, fetchInitialData]);
 
   useEffect(() => {
     if (!token || !electionId) return;
@@ -110,14 +115,28 @@ export default function ResultsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1 container mx-auto p-4 md:p-8">
+                <LoadingSpinner text="Fetching results..."/>
+            </main>
+        </div>
     );
   }
 
-  if (!election) {
-    notFound();
+  if (error || !election) {
+      return (
+          <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-1 container mx-auto p-4 md:p-8">
+                  <ErrorDisplay 
+                    title="Could not load results"
+                    message={error || "An unknown error occurred while fetching election results."}
+                    onRetry={fetchInitialData}
+                  />
+              </main>
+          </div>
+      )
   }
 
   const now = new Date();

@@ -7,29 +7,39 @@ import type { Election, VoteResult, UserProfile, CastVotePayload, VoteStatus, Cr
 const API_BASE_URL = '';
 
 async function fetchWrapper(url: string, options: RequestInit = {}) {
-  // All requests now go to the proxied path
-  const response = await fetch(`${API_BASE_URL}/api${url}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/api${url}`, {
+        ...options,
+        headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+        },
+    });
 
-  if (!response.ok) {
-    let errorData;
-    try {
-        errorData = await response.json();
-    } catch (e) {
-        errorData = { message: 'An unknown error occurred and the response was not valid JSON.' };
+    if (!response.ok) {
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorData = { message: `An unknown error occurred. Status: ${response.status}` };
+        }
+        console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+        throw new Error(errorData.message || 'An unexpected API error occurred.');
     }
-    console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
-    throw new Error(errorData.message || 'API request failed');
+
+    if (response.status === 204) {
+        return null;
+    }
+    
+    return response.json();
+  } catch (error: any) {
+    if (error.cause?.code === 'ECONNREFUSED' || error instanceof TypeError) {
+        console.error('Network Error:', error);
+        throw new Error('Could not connect to the server. Please check your network connection or contact an administrator.');
+    }
+    // Re-throw other errors (like the ones we threw manually above)
+    throw error;
   }
-  if (response.status === 204) {
-      return null;
-  }
-  return response.json();
 }
 
 // Auth Endpoints

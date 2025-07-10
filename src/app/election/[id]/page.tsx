@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Candidate, Election } from '@/types';
@@ -13,6 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BarChartHorizontalBig, CheckCircle2, Lightbulb, User, Vote, XCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getElectionById, castVote, checkVoteStatus } from '@/lib/api';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 export default function ElectionPage() {
   const params = useParams();
@@ -26,34 +28,38 @@ export default function ElectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
-  useEffect(() => {
+  const fetchElectionData = useCallback(async () => {
     const electionId = Number(params.id);
     if (isNaN(electionId)) {
         setError("Invalid election ID.");
         setLoading(false);
         return;
     }
+    
+    setLoading(true);
+    setError(null);
+    try {
+        const electionData = await getElectionById(electionId, token);
+        setElection(electionData);
 
+        if (isAuthenticated && token) {
+            const voteStatus = await checkVoteStatus(electionId, token);
+            setHasVoted(voteStatus.hasVoted);
+        }
+    } catch (err: any) {
+        setError(err.message || "Failed to load election details.");
+        console.error(err);
+    } finally {
+        setLoading(false);
+    }
+  }, [params.id, isAuthenticated, token]);
+
+
+  useEffect(() => {
     if (!authLoading) {
-        const fetchElectionData = async () => {
-            try {
-                const electionData = await getElectionById(electionId, token);
-                setElection(electionData);
-
-                if (isAuthenticated) {
-                    const voteStatus = await checkVoteStatus(electionId, token!);
-                    setHasVoted(voteStatus.hasVoted);
-                }
-            } catch (err) {
-                setError("Failed to load election details.");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchElectionData();
     }
-  }, [params.id, authLoading, isAuthenticated, token]);
+  }, [authLoading, fetchElectionData]);
   
   const handleVote = async () => {
     if (!selectedCandidateId || !election || !token) return;
@@ -73,23 +79,30 @@ export default function ElectionPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+        <>
+            <Header />
+            <main className="container mx-auto p-8">
+                <LoadingSpinner text="Loading Election..." />
+            </main>
+        </>
+    )
   }
 
   if (error || !election) {
     return (
       <>
         <Header />
-        <main className="container mx-auto p-8 text-center">
-          <XCircle className="mx-auto h-12 w-12 text-destructive" />
-          <h1 className="mt-4 text-2xl font-bold">{error || "Election Not Found"}</h1>
-          <p className="mt-2 text-muted-foreground">The election you are looking for does not exist or could not be loaded.</p>
-          <Button asChild className="mt-6">
-            <Link href="/">Back to Elections</Link>
-          </Button>
+        <main className="container mx-auto p-8">
+           <ErrorDisplay 
+            title="Election Not Found" 
+            message={error || "The election you are looking for does not exist or could not be loaded."} 
+            onRetry={fetchElectionData}
+           />
+           <div className="text-center mt-6">
+                <Button asChild>
+                    <Link href="/">Back to Elections</Link>
+                </Button>
+           </div>
         </main>
       </>
     );

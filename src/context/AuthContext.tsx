@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { getProfile } from '@/lib/api';
 import type { UserProfile } from '@/types';
-import { Loader2 } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -37,8 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Use sessionStorage instead of localStorage
-      const storedToken = sessionStorage.getItem('token');
+      let storedToken: string | null = null;
+      try {
+        // Use sessionStorage instead of localStorage
+        storedToken = sessionStorage.getItem('token');
+      } catch (e) {
+        console.error("Could not access sessionStorage. Auth will not persist.", e)
+      }
+      
       if (storedToken) {
         setToken(storedToken);
         await fetchUser(storedToken);
@@ -51,7 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (newToken: string) => {
     sessionStorage.setItem('token', newToken);
     setToken(newToken);
+    setIsLoading(true);
     await fetchUser(newToken);
+    setIsLoading(false);
   };
 
   const logout = () => {
@@ -60,16 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  if (isLoading) {
+  const value = { user, token, isAuthenticated: !!token, isLoading, login, logout };
+
+  if (value.isLoading && !value.isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <LoadingSpinner text="Initializing..."/>
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isLoading, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

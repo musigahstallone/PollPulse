@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import type { Election, Candidate } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-import { Loader2, PlayCircle, StopCircle, PlusCircle, Users, Calendar, Megaphone } from 'lucide-react';
+import { PlayCircle, StopCircle, PlusCircle, Users, Calendar, Megaphone } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -19,6 +19,10 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
+import LoadingSpinner from '../LoadingSpinner';
+import ErrorDisplay from '../ErrorDisplay';
+import { Loader2 } from 'lucide-react';
+
 
 const addCandidateSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -85,23 +89,31 @@ export default function ManageElections() {
   const { toast } = useToast();
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
-  const fetchElections = async () => {
+  const fetchElections = useCallback(async () => {
+    if (!token) {
+        setLoading(false);
+        setError("You must be logged in to manage elections.");
+        return;
+    }
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
       const data = await getAllElections(token);
       setElections(data);
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch elections.' });
+      setError(error.message || 'Could not fetch elections.');
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not fetch elections.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, toast]);
 
   useEffect(() => {
-    if(token) fetchElections();
-  }, [token]);
+    fetchElections();
+  }, [fetchElections]);
 
   const handleAction = async (electionId: number, action: 'start' | 'stop' | 'announce', successMessage: string) => {
     if (!token) return;
@@ -124,13 +136,25 @@ export default function ManageElections() {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return (
+        <CardContent>
+            <LoadingSpinner text="Loading election data..."/>
+        </CardContent>
+    );
+  }
+
+  if (error) {
+      return (
+          <CardContent>
+              <ErrorDisplay message={error} onRetry={fetchElections} />
+          </CardContent>
+      )
   }
 
   return (
     <CardContent>
       <div className="space-y-4">
-        {elections.length === 0 && <p className="text-muted-foreground text-center">No elections found.</p>}
+        {elections.length === 0 && <p className="text-muted-foreground text-center py-8">No elections found. Create one to get started!</p>}
         {elections.map((election) => (
           <Accordion type="single" collapsible key={election.id}>
              <AccordionItem value={`election-${election.id}`}>
