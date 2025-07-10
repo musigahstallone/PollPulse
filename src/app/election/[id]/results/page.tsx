@@ -8,11 +8,14 @@ import type { VoteResult, Election } from "@/types";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Hourglass, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, Hourglass, Lock, Wifi, WifiOff } from "lucide-react";
 import { getElectionById, getElectionResults } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import * as signalR from "@microsoft/signalr";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+
+type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
 export default function ResultsPage() {
   const params = useParams();
@@ -22,6 +25,7 @@ export default function ResultsPage() {
   const [election, setElection] = useState<Election | null>(null);
   const [results, setResults] = useState<VoteResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   
   useEffect(() => {
     if (isNaN(electionId)) {
@@ -31,8 +35,8 @@ export default function ResultsPage() {
     
     if(!authLoading) {
       const fetchInitialData = async () => {
+        setLoading(true);
         try {
-          // Admin might need to see results of inactive elections, so token is passed
           const electionData = await getElectionById(electionId, token);
           setElection(electionData);
 
@@ -54,23 +58,43 @@ export default function ResultsPage() {
     if (!token || !electionId) return;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${process.env.NEXT_PUBLIC_API_BASE_URL}/votehub`, {
+      // Note: The URL is now relative because of the Next.js proxy
+      .withUrl(`/votehub`, {
         accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
       .build();
 
+    const updateStatus = () => {
+        const stateMap: Record<signalR.HubConnectionState, ConnectionStatus> = {
+            [signalR.HubConnectionState.Connecting]: 'connecting',
+            [signalR.HubConnectionState.Connected]: 'connected',
+            [signalR.HubConnectionState.Disconnected]: 'disconnected',
+            [signalR.HubConnectionState.Reconnecting]: 'reconnecting',
+            [signalR.HubConnectionState.Disconnecting]: 'disconnected',
+        };
+        setConnectionStatus(stateMap[connection.state]);
+    };
+
     connection.on("ReceiveResults", (newResults: VoteResult[]) => {
       setResults(newResults);
     });
+    
+    connection.onreconnecting(() => updateStatus());
+    connection.onreconnected(() => updateStatus());
+    connection.onclose(() => updateStatus());
 
     connection.start()
       .then(() => {
+        updateStatus();
         console.log("SignalR Connected.");
         connection.invoke("JoinElectionGroup", electionId);
         connection.invoke("GetLiveResults", electionId);
       })
-      .catch(err => console.error("SignalR Connection Error: ", err));
+      .catch(err => {
+          console.error("SignalR Connection Error: ", err);
+          updateStatus();
+      });
 
     return () => {
         if (connection.state === signalR.HubConnectionState.Connected) {
@@ -98,6 +122,19 @@ export default function ResultsPage() {
   const showFullResults = isElectionFinished && election.resultsAnnounced;
   const totalVotes = results.reduce((sum, result) => sum + result.voteCount, 0);
 
+  const getStatusBadge = () => {
+    switch(connectionStatus) {
+        case 'connected':
+            return <Badge variant="default" className="bg-green-500 text-white"><Wifi className="mr-2 h-3 w-3" /> Live</Badge>;
+        case 'reconnecting':
+            return <Badge variant="secondary"><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Reconnecting...</Badge>;
+        case 'disconnected':
+            return <Badge variant="destructive"><WifiOff className="mr-2 h-3 w-3" /> Delayed</Badge>;
+        default:
+            return <Badge variant="outline"><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Connecting...</Badge>;
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -112,11 +149,14 @@ export default function ResultsPage() {
         </div>
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
+             <div className="flex justify-between items-start">
+                 <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
+                 {getStatusBadge()}
+             </div>
             <CardDescription>
               {isElectionFinished 
                 ? `This election has concluded. A total of ${totalVotes.toLocaleString()} votes were cast.`
-                : `This election is currently active. Live results are being updated.`
+                : `This election is currently active. Results are updating in real-time.`
               }
             </CardDescription>
           </CardHeader>

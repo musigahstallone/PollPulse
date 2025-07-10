@@ -3,12 +3,18 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/context/AuthContext";
-import { Poppins } from "next/font/google";
+import { Montserrat, Open_Sans } from "next/font/google";
 
-const poppins = Poppins({
+const montserrat = Montserrat({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
+  weight: ['700'],
+  variable: '--font-montserrat',
+});
+
+const openSans = Open_Sans({
+    subsets: ['latin'],
+    weight: ['400', '600'],
+    variable: '--font-open-sans',
 });
 
 export const metadata: Metadata = {
@@ -26,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("font-body antialiased min-h-screen bg-background", poppins.variable)}>
+      <body className={cn("font-body antialiased min-h-screen bg-background", montserrat.variable, openSans.variable)}>
         <AuthProvider>
           {children}
           <Toaster />
