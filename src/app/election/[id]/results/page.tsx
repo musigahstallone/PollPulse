@@ -17,6 +17,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorDisplay from "@/components/ErrorDisplay";
+import { cn } from "@/lib/utils";
 
 type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
@@ -30,6 +31,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const [isPulsing, setIsPulsing] = useState(false);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   
@@ -65,7 +67,6 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL || !election) return;
 
-    // Only set up connection once
     if (connectionRef.current) return;
 
     const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
@@ -92,12 +93,13 @@ export default function ResultsPage() {
 
     newConnection.on("ReceiveResults", (newResults: VoteResult[]) => {
       setResults(newResults);
+      setIsPulsing(true);
+      setTimeout(() => setIsPulsing(false), 1000);
     });
     
     newConnection.onreconnecting(() => updateStatus());
     newConnection.onreconnected(() => {
         updateStatus();
-        // Re-join group and get results on successful reconnect
         newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error re-joining group:", err));
         if (election.isActive) {
           newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results on reconnect:", err));
@@ -109,11 +111,9 @@ export default function ResultsPage() {
       .then(() => {
         updateStatus();
         console.log("SignalR Connected.");
-        // Pass electionId as a number
         newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error joining group:", err));
         
         if (election.isActive) {
-          // Pass electionId as a number
           newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results:", err));
         }
       })
@@ -165,7 +165,7 @@ export default function ResultsPage() {
   const getStatusBadge = () => {
     switch(connectionStatus) {
         case 'connected':
-            return <Badge variant="default" className="bg-green-500 text-white"><Wifi className="mr-2 h-3 w-3" /> Live</Badge>;
+            return <Badge className={cn("bg-green-500 text-white transition-all", isPulsing && "animate-pulse ring-4 ring-green-300")}><Wifi className="mr-2 h-3 w-3" /> Live</Badge>;
         case 'reconnecting':
             return <Badge variant="secondary"><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Reconnecting...</Badge>;
         case 'disconnected':
