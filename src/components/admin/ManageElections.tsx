@@ -5,12 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/context/AuthContext';
-import { addCandidate, getAllElections, startElection, stopElection } from '@/lib/api';
+import { addCandidate, getAllElections, startElection, stopElection, announceResults } from '@/lib/api';
 import type { Election, Candidate } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-import { Loader2, PlayCircle, StopCircle, PlusCircle, Users, Calendar } from 'lucide-react';
+import { Loader2, PlayCircle, StopCircle, PlusCircle, Users, Calendar, Megaphone } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
+import { Badge } from '../ui/badge';
 
 const addCandidateSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -84,13 +85,11 @@ export default function ManageElections() {
   const { toast } = useToast();
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   const fetchElections = async () => {
     try {
-      // Admin should probably see all elections, not just active ones.
-      // The current `getAllElections` uses the `/active` endpoint.
-      // This might need a new endpoint like `/all` for admins.
+      setLoading(true);
       const data = await getAllElections(token);
       setElections(data);
     } catch (error: any) {
@@ -104,18 +103,23 @@ export default function ManageElections() {
     if(token) fetchElections();
   }, [token]);
 
-  const handleToggleElection = async (election: Election) => {
+  const handleAction = async (electionId: number, action: 'start' | 'stop' | 'announce', successMessage: string) => {
     if (!token) return;
-    setActionLoading(prev => ({...prev, [election.id]: true}));
+    setActionLoading(prev => ({...prev, [`${action}-${electionId}`]: true}));
     try {
-      const action = election.isActive ? stopElection : startElection;
-      const result = await action(election.id, token);
-      toast({ title: 'Success', description: result.message });
+      let apiCall;
+      switch(action) {
+        case 'start': apiCall = startElection; break;
+        case 'stop': apiCall = stopElection; break;
+        case 'announce': apiCall = announceResults; break;
+      }
+      await apiCall(electionId, token);
+      toast({ title: 'Success', description: successMessage });
       fetchElections(); // Refresh list
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
-        setActionLoading(prev => ({...prev, [election.id]: false}));
+        setActionLoading(prev => ({...prev, [`${action}-${electionId}`]: false}));
     }
   }
 
@@ -135,7 +139,12 @@ export default function ManageElections() {
                         <div className="flex justify-between items-start">
                              <div>
                                 <CardTitle>{election.title}</CardTitle>
-                                <CardDescription>{election.description}</CardDescription>
+                                <CardDescription>
+                                    <div className="flex items-center gap-4 mt-2">
+                                        <Badge variant={election.isActive ? 'default' : 'secondary'} className={election.isActive ? "bg-green-500" : ""}>{election.isActive ? 'Active' : 'Inactive'}</Badge>
+                                        <Badge variant={election.resultsAnnounced ? 'default' : 'secondary'} className={election.resultsAnnounced ? "bg-blue-500" : ""}>{election.resultsAnnounced ? 'Results Public' : 'Results Hidden'}</Badge>
+                                    </div>
+                                </CardDescription>
                              </div>
                              <AccordionTrigger className="p-2 hover:no-underline" />
                         </div>
@@ -150,18 +159,29 @@ export default function ManageElections() {
                             <span>{election.candidates.length} candidates</span>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex justify-between">
-                        <Button
-                            variant={election.isActive ? 'destructive' : 'default'}
-                            size="sm"
-                            onClick={() => handleToggleElection(election)}
-                            disabled={actionLoading[election.id]}
-                        >
-                            {actionLoading[election.id] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                             election.isActive ? <StopCircle className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />
-                            }
-                            {election.isActive ? 'Stop Election' : 'Start Election'}
-                        </Button>
+                    <CardFooter className="flex flex-wrap gap-2 justify-between">
+                        <div className="flex gap-2">
+                            <Button
+                                variant={election.isActive ? 'destructive' : 'default'}
+                                size="sm"
+                                onClick={() => handleAction(election.id, election.isActive ? 'stop' : 'start', `Election ${election.isActive ? 'stopped' : 'started'}.`)}
+                                disabled={actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`]}
+                            >
+                                {actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+                                election.isActive ? <StopCircle className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />
+                                }
+                                {election.isActive ? 'Stop' : 'Start'}
+                            </Button>
+                             <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAction(election.id, 'announce', 'Results have been announced.')}
+                                disabled={actionLoading[`announce-${election.id}`] || election.isActive || election.resultsAnnounced}
+                            >
+                                {actionLoading[`announce-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
+                                Announce
+                            </Button>
+                        </div>
                         <AddCandidateForm electionId={election.id} onCandidateAdded={fetchElections} />
                     </CardFooter>
                 </Card>

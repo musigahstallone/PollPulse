@@ -4,18 +4,19 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound, useParams } from "next/navigation";
-import type { VoteResult, Election, Candidate } from "@/types";
+import type { VoteResult, Election } from "@/types";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Hourglass, Lock } from "lucide-react";
 import { getElectionById, getElectionResults } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import * as signalR from "@microsoft/signalr";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function ResultsPage() {
   const params = useParams();
-  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const electionId = Number(params.id);
 
   const [election, setElection] = useState<Election | null>(null);
@@ -31,7 +32,8 @@ export default function ResultsPage() {
     if(!authLoading) {
       const fetchInitialData = async () => {
         try {
-          const electionData = await getElectionById(electionId);
+          // Admin might need to see results of inactive elections, so token is passed
+          const electionData = await getElectionById(electionId, token);
           setElection(electionData);
 
           if (token) {
@@ -91,6 +93,9 @@ export default function ResultsPage() {
     notFound();
   }
 
+  const now = new Date();
+  const isElectionFinished = new Date(election.endDate) < now || !election.isActive;
+  const showFullResults = isElectionFinished && election.resultsAnnounced;
   const totalVotes = results.reduce((sum, result) => sum + result.voteCount, 0);
 
   return (
@@ -109,12 +114,36 @@ export default function ResultsPage() {
           <CardHeader>
             <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
             <CardDescription>
-              Official vote tally for the {election.title}. A total of {totalVotes.toLocaleString()} votes were cast.
+              {isElectionFinished 
+                ? `This election has concluded. A total of ${totalVotes.toLocaleString()} votes were cast.`
+                : `This election is currently active. Live results are being updated.`
+              }
             </CardDescription>
           </CardHeader>
         </Card>
         
-        <ResultsDisplay results={results} />
+        {showFullResults ? (
+           <ResultsDisplay results={results} election={election} />
+        ) : isElectionFinished ? (
+            <Alert>
+                <Hourglass className="h-4 w-4" />
+                <AlertTitle>Results Pending</AlertTitle>
+                <AlertDescription>
+                    The votes have been collected, but the final results have not been announced by the administration yet. Please check back later.
+                </AlertDescription>
+            </Alert>
+        ) : (
+            <Alert variant="default" className="border-accent">
+                <Lock className="h-4 w-4 text-accent-foreground" />
+                <AlertTitle>Live Tally in Progress</AlertTitle>
+                <AlertDescription>
+                    The election is still ongoing. Full detailed results and percentages will be available once voting has officially closed and results are announced by an administrator.
+                    For now, you can see a live leaderboard of the candidates.
+                </AlertDescription>
+            </Alert>
+        )}
+
+        {!showFullResults && <ResultsDisplay results={results} election={election} showLeaderOnly={true} />}
       </main>
     </div>
   );

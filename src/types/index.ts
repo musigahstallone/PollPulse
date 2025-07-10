@@ -17,6 +17,7 @@ export interface Election {
   startDate: string; // ISO 8601 string
   endDate: string; // ISO 8601 string
   isActive: boolean;
+  resultsAnnounced: boolean; // To control result visibility
   candidates: Candidate[];
 }
 

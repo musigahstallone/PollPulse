@@ -14,7 +14,12 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+    let errorData;
+    try {
+        errorData = await response.json();
+    } catch (e) {
+        errorData = { message: 'An unknown error occurred and the response was not valid JSON.' };
+    }
     console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
     throw new Error(errorData.message || 'API request failed');
   }
@@ -76,30 +81,31 @@ export async function addCandidate(payload: AddCandidatePayload, token: string):
     });
 }
 
+export async function announceResults(electionId: number, token: string): Promise<{ message: string }> {
+    // This endpoint is not in the spec, but we add it for the frontend functionality.
+    // The backend would need to implement POST /api/election/{electionId}/announce
+    return fetchWrapper(`/api/election/${electionId}/announce`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+}
+
 // Public Election Endpoints
 export async function getAllElections(token?: string | null): Promise<Election[]> {
   const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-  // Assuming the backend has an endpoint to get all elections.
-  // The provided doc has /api/election/active. We might need a new one for admins.
-  // For now, let's use the active one, but this might need adjustment.
-  return fetchWrapper('/api/election/active', { headers });
+  // The backend spec doesn't have a /api/election/all endpoint.
+  // We assume one exists for admins. If not, this needs to be created on the backend.
+  return fetchWrapper('/api/election/all', { headers });
 }
-
 
 export async function getActiveElections(): Promise<Election[]> {
   return fetchWrapper('/api/election/active');
 }
 
-export async function getElectionById(id: number): Promise<Election> {
-    // This function might need a token if it's supposed to fetch non-active elections for admins
-    const elections = await getActiveElections();
-    const election = elections.find(e => e.id === id);
-    if (!election) {
-        // A better approach would be a dedicated /api/election/{id} endpoint.
-        // Since it's not in the spec, we simulate it this way.
-        throw new Error('Election not found or is not active');
-    }
-    return election;
+export async function getElectionById(id: number, token?: string | null): Promise<Election> {
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    // A dedicated /api/election/{id} endpoint is better.
+    return fetchWrapper(`/api/election/${id}`, { headers });
 }
 
 export async function getCandidatesForElection(electionId: number): Promise<Candidate[]> {
@@ -122,7 +128,7 @@ export async function getElectionResults(electionId: number, token: string): Pro
     });
 }
 
-export async function checkVoteStatus(electionId: number, token: string): Promise<VoteStatus> {
+export async function checkVoteStatus(electionId: number, token:string): Promise<VoteStatus> {
     return fetchWrapper(`/api/voting/check-vote-status/${electionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
     });

@@ -11,8 +11,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BarChartHorizontalBig, CheckCircle2, Lightbulb, User, Vote, XCircle, Loader2 } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import PlatformImprover from '@/components/PlatformImprover';
 import { useAuth } from '@/context/AuthContext';
 import { getElectionById, castVote, checkVoteStatus } from '@/lib/api';
 
@@ -39,7 +37,7 @@ export default function ElectionPage() {
     if (!authLoading) {
         const fetchElectionData = async () => {
             try {
-                const electionData = await getElectionById(electionId);
+                const electionData = await getElectionById(electionId, token);
                 setElection(electionData);
 
                 if (isAuthenticated) {
@@ -98,7 +96,7 @@ export default function ElectionPage() {
   }
 
   const now = new Date();
-  const isElectionActive = new Date(election.startDate) <= now && new Date(election.endDate) >= now;
+  const isElectionActive = new Date(election.startDate) <= now && new Date(election.endDate) >= now && election.isActive;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -160,18 +158,7 @@ export default function ElectionPage() {
                     <RadioGroupItem value={candidate.id.toString()} id={`candidate-${candidate.id}`} />
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{candidate.platform}</p>
-                     <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="item-1">
-                        <AccordionTrigger className="text-sm font-semibold text-primary hover:no-underline">
-                           <Lightbulb className="mr-2 h-4 w-4"/>
-                           Platform Improvement Suggestions
-                        </AccordionTrigger>
-                        <AccordionContent>
-                           <PlatformImprover platformText={candidate.platform} />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                    <p className="text-sm text-muted-foreground">{candidate.platform}</p>
                   </CardContent>
                 </Card>
               </Label>
