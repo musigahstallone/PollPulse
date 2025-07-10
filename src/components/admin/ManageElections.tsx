@@ -94,9 +94,9 @@ export default function ManageElections() {
 
   const fetchElections = useCallback(async () => {
     if (!token) {
-        setLoading(false);
-        setError("You must be logged in to manage elections.");
-        return;
+      setLoading(false);
+      setError("You must be logged in to manage elections.");
+      return;
     }
     setLoading(true);
     setError(null);
@@ -117,10 +117,10 @@ export default function ManageElections() {
 
   const handleAction = async (electionId: number, action: 'start' | 'stop' | 'announce', successMessage: string) => {
     if (!token) return;
-    setActionLoading(prev => ({...prev, [`${action}-${electionId}`]: true}));
+    setActionLoading(prev => ({ ...prev, [`${action}-${electionId}`]: true }));
     try {
       let apiCall;
-      switch(action) {
+      switch (action) {
         case 'start': apiCall = startElection; break;
         case 'stop': apiCall = stopElection; break;
         case 'announce': apiCall = announceResults; break;
@@ -131,24 +131,24 @@ export default function ManageElections() {
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
-        setActionLoading(prev => ({...prev, [`${action}-${electionId}`]: false}));
+      setActionLoading(prev => ({ ...prev, [`${action}-${electionId}`]: false }));
     }
   }
 
   if (loading) {
     return (
-        <CardContent>
-            <LoadingSpinner text="Loading election data..."/>
-        </CardContent>
+      <CardContent>
+        <LoadingSpinner text="Loading election data..." />
+      </CardContent>
     );
   }
 
   if (error) {
-      return (
-          <CardContent>
-              <ErrorDisplay message={error} onRetry={fetchElections} />
-          </CardContent>
-      )
+    return (
+      <CardContent>
+        <ErrorDisplay message={error} onRetry={fetchElections} />
+      </CardContent>
+    )
   }
 
   return (
@@ -157,85 +157,85 @@ export default function ManageElections() {
         {elections.length === 0 && <p className="text-muted-foreground text-center py-8">No elections found. Create one to get started!</p>}
         {elections.map((election) => (
           <Accordion type="single" collapsible key={election.id}>
-             <AccordionItem value={`election-${election.id}`}>
-                <Card>
-                    <CardHeader>
-                        <div className="flex justify-between items-start">
-                             <div>
-                                <CardTitle>{election.title}</CardTitle>
-                                <CardDescription>
-                                    <div className="flex items-center gap-4 mt-2">
-                                        <Badge variant={election.isActive ? 'default' : 'secondary'} className={election.isActive ? "bg-green-500" : ""}>{election.isActive ? 'Active' : 'Inactive'}</Badge>
-                                        <Badge variant={election.resultsAnnounced ? 'default' : 'secondary'} className={election.resultsAnnounced ? "bg-blue-500" : ""}>{election.resultsAnnounced ? 'Results Public' : 'Results Hidden'}</Badge>
-                                    </div>
-                                </CardDescription>
-                             </div>
-                             <AccordionTrigger className="p-2 hover:no-underline" />
+            <AccordionItem value={`election-${election.id}`}>
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{election.title}</CardTitle>
+                      <CardDescription>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Badge variant={election.isActive ? 'default' : 'secondary'} className={election.isActive ? "bg-green-500" : ""}>{election.isActive ? 'Active' : 'Inactive'}</Badge>
+                          <Badge variant={election.resultsAnnounced ? 'default' : 'secondary'} className={election.resultsAnnounced ? "bg-blue-500" : ""}>{election.resultsAnnounced ? 'Results Public' : 'Results Hidden'}</Badge>
                         </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                            <Calendar className="mr-2 h-4 w-4" />
-                            <span>{format(new Date(election.startDate), 'PPP p')} - {format(new Date(election.endDate), 'PPP p')}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                            <Users className="mr-2 h-4 w-4" />
-                            <span>{election.candidates.length} candidates</span>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-wrap gap-2 justify-between">
-                        <div className="flex gap-2">
-                            <Button
-                                variant={election.isActive ? 'destructive' : 'default'}
-                                size="sm"
-                                onClick={() => handleAction(election.id, election.isActive ? 'stop' : 'start', `Election ${election.isActive ? 'stopped' : 'started'}.`)}
-                                disabled={actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`]}
-                            >
-                                {actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                                election.isActive ? <StopCircle className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />
-                                }
-                                {election.isActive ? 'Stop' : 'Start'}
-                            </Button>
-                             <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAction(election.id, 'announce', 'Results have been announced.')}
-                                disabled={actionLoading[`announce-${election.id}`] || election.isActive || election.resultsAnnounced}
-                            >
-                                {actionLoading[`announce-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
-                                Announce
-                            </Button>
-                        </div>
-                        <AddCandidateForm electionId={election.id} onCandidateAdded={fetchElections} />
-                    </CardFooter>
-                </Card>
-                 <AccordionContent className="p-4">
-                     <h4 className="font-semibold mb-2">Candidates</h4>
-                     <Table>
-                         <TableHeader>
-                             <TableRow>
-                                 <TableHead>Name</TableHead>
-                                 <TableHead>Position</TableHead>
-                                 <TableHead>Student ID</TableHead>
-                             </TableRow>
-                         </TableHeader>
-                         <TableBody>
-                             {election.candidates.map((candidate: Candidate) => (
-                                 <TableRow key={candidate.id}>
-                                     <TableCell>{candidate.firstName} {candidate.lastName}</TableCell>
-                                     <TableCell>{candidate.position}</TableCell>
-                                     <TableCell>{candidate.studentId}</TableCell>
-                                 </TableRow>
-                             ))}
-                             {election.candidates.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={3} className="text-center">No candidates added yet.</TableCell>
-                                </TableRow>
-                             )}
-                         </TableBody>
-                     </Table>
-                 </AccordionContent>
-             </AccordionItem>
+                      </CardDescription>
+                    </div>
+                    <AccordionTrigger className="p-2 hover:no-underline" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <span>{format(new Date(election.startDate), 'PPP p')} - {format(new Date(election.endDate), 'PPP p')}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>{election.candidates.length} candidates</span>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-wrap gap-2 justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={election.isActive ? 'destructive' : 'default'}
+                      size="sm"
+                      onClick={() => handleAction(election.id, election.isActive ? 'stop' : 'start', `Election ${election.isActive ? 'stopped' : 'started'}.`)}
+                      disabled={actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`]}
+                    >
+                      {actionLoading[`start-${election.id}`] || actionLoading[`stop-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
+                        election.isActive ? <StopCircle className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />
+                      }
+                      {election.isActive ? 'Stop' : 'Start'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAction(election.id, 'announce', 'Results have been announced.')}
+                      disabled={actionLoading[`announce-${election.id}`] || election.isActive || election.resultsAnnounced}
+                    >
+                      {actionLoading[`announce-${election.id}`] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
+                      Announce
+                    </Button>
+                  </div>
+                  <AddCandidateForm electionId={election.id} onCandidateAdded={fetchElections} />
+                </CardFooter>
+              </Card>
+              <AccordionContent className="p-4">
+                <h4 className="font-semibold mb-2">Candidates</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Student ID</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {election.candidates.map((candidate: Candidate) => (
+                      <TableRow key={candidate.id}>
+                        <TableCell>{candidate.firstName} {candidate.lastName}</TableCell>
+                        <TableCell>{candidate.position}</TableCell>
+                        <TableCell>{candidate.studentId}</TableCell>
+                      </TableRow>
+                    ))}
+                    {election.candidates.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center">No candidates added yet.</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         ))}
       </div>
