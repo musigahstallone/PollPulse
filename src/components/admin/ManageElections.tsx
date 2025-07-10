@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -10,7 +11,7 @@ import type { Election, Candidate } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-import { PlayCircle, StopCircle, PlusCircle, Users, Calendar, Megaphone } from 'lucide-react';
+import { PlayCircle, StopCircle, PlusCircle, Users, Calendar, Megaphone, Clock } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -164,9 +165,20 @@ export default function ManageElections() {
                     <div>
                       <CardTitle>{election.title}</CardTitle>
                       <CardDescription>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center flex-wrap gap-2 mt-2">
                           <Badge variant={election.isActive ? 'default' : 'secondary'} className={election.isActive ? "bg-green-500" : ""}>{election.isActive ? 'Active' : 'Inactive'}</Badge>
-                          <Badge variant={election.resultsAnnounced ? 'default' : 'secondary'} className={election.resultsAnnounced ? "bg-blue-500" : ""}>{election.resultsAnnounced ? 'Results Public' : 'Results Hidden'}</Badge>
+                          <Badge variant={election.resultsAnnounced ? 'default' : 'secondary'} className={election.resultsAnnounced ? "bg-blue-500" : ""}>
+                            {election.resultsAnnounced 
+                                ? `Announced` 
+                                : 'Results Hidden'
+                            }
+                          </Badge>
+                          {election.resultsAnnounced && election.resultsAnnouncedAt && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {format(new Date(election.resultsAnnouncedAt), 'PPp')}
+                                </span>
+                           )}
                         </div>
                       </CardDescription>
                     </div>

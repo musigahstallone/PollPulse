@@ -1,3 +1,4 @@
+
 "use server";
 
 import type {
@@ -172,10 +173,10 @@ export async function getAllElections(
   token?: string | null
 ): Promise<Election[]> {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  // Updated to use the correct endpoint that matches GetAllElectionsAsync for admins
+  // Updated to use the correct endpoint that matches GetAllElectionsAsync for admins and public
   return fetchWrapper("/api/Election/all", {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
 }
 
@@ -187,7 +188,7 @@ export async function getElectionById(
   // This endpoint matches GetElectionByIdAsync
   return fetchWrapper(`/api/Election/${id}`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
 }
 
