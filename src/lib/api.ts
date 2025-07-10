@@ -1,3 +1,4 @@
+
 "use server";
 
 import type {
@@ -16,7 +17,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function fetchWrapper(url: string, options: RequestInit = {}) {
   try {
-    const fetchUrl = `${API_BASE_URL}/api${url}`;
+    const fetchUrl = `${API_BASE_URL}${url}`;
 
     const response = await fetch(fetchUrl, {
       ...options,
@@ -48,7 +49,7 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
 
     return response.json();
   } catch (error: any) {
-    if (error.cause?.code === "ECONNREFUSED" || error instanceof TypeError) {
+    if (error.cause?.code === "ECONNREFUSED" || error.cause?.code === 'ECONNRESET' || error instanceof TypeError) {
       console.error("Network Error:", error);
       throw new Error(
         "Could not connect to the server. Please check your network connection or contact an administrator."
@@ -61,21 +62,21 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
 
 // Auth Endpoints
 export async function login(credentials: any) {
-  return fetchWrapper("/Auth/login", {
+  return fetchWrapper("/api/Auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
 }
 
 export async function register(userData: any) {
-  return fetchWrapper("/Auth/register", {
+  return fetchWrapper("/api/Auth/register", {
     method: "POST",
     body: JSON.stringify(userData),
   });
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {
-  return fetchWrapper("/Auth/profile", {
+  return fetchWrapper("/api/Auth/profile", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
@@ -85,7 +86,7 @@ export async function createElection(
   payload: CreateElectionPayload,
   token: string
 ): Promise<Election> {
-  return fetchWrapper("/Election", {
+  return fetchWrapper("/api/Election", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -96,7 +97,7 @@ export async function startElection(
   electionId: number,
   token: string
 ): Promise<{ message: string; election: Election }> {
-  return fetchWrapper(`/Election/${electionId}/start`, {
+  return fetchWrapper(`/api/Election/${electionId}/start`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -106,7 +107,7 @@ export async function stopElection(
   electionId: number,
   token: string
 ): Promise<{ message: string; election: Election }> {
-  return fetchWrapper(`/Election/${electionId}/stop`, {
+  return fetchWrapper(`/api/Election/${electionId}/stop`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -116,7 +117,7 @@ export async function addCandidate(
   payload: AddCandidatePayload,
   token: string
 ): Promise<Candidate> {
-  return fetchWrapper("/Election/candidates", {
+  return fetchWrapper("/api/Election/candidates", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -124,18 +125,18 @@ export async function addCandidate(
 }
 
 export async function getActiveElections(): Promise<Election[]> {
-  return fetchWrapper("/Election/active");
+  return fetchWrapper("/api/Election/active");
 }
 
 export async function getCandidatesForElection(
   electionId: number
 ): Promise<Candidate[]> {
-  return fetchWrapper(`/Election/${electionId}/candidates`);
+  return fetchWrapper(`/api/Election/${electionId}/candidates`);
 }
 
 // Voting Endpoints
 export async function castVote(payload: CastVotePayload, token: string) {
-  return fetchWrapper("/Voting/cast", {
+  return fetchWrapper("/api/Voting/cast", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -146,7 +147,7 @@ export async function getElectionResults(
   electionId: number,
   token: string
 ): Promise<VoteResult[]> {
-  return fetchWrapper(`/Voting/results/${electionId}`, {
+  return fetchWrapper(`/api/Voting/results/${electionId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
@@ -155,7 +156,7 @@ export async function checkVoteStatus(
   electionId: number,
   token: string
 ): Promise<VoteStatus> {
-  return fetchWrapper(`/Voting/check-vote-status/${electionId}`, {
+  return fetchWrapper(`/api/Voting/check-vote-status/${electionId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
@@ -167,9 +168,9 @@ export async function getAllElections(
 ): Promise<Election[]> {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   // Updated to use the correct endpoint that matches GetAllElectionsAsync
-  return fetchWrapper("/Election", {
+  return fetchWrapper("/api/Election", {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
 }
 
@@ -179,9 +180,9 @@ export async function getElectionById(
 ): Promise<Election> {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   // This endpoint matches GetElectionByIdAsync
-  return fetchWrapper(`/Election/${id}`, {
+  return fetchWrapper(`/api/Election/${id}`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
 }
 
@@ -190,7 +191,7 @@ export async function announceResults(
   token: string
 ): Promise<{ message: string }> {
   // Updated to match the AnnounceResultsAsync method
-  return fetchWrapper(`/Election/${electionId}/announce`, {
+  return fetchWrapper(`/api/Election/${electionId}/announce`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });

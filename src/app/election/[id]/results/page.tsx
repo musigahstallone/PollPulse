@@ -42,11 +42,11 @@ export default function ResultsPage() {
       const electionData = await getElectionById(electionId, token);
       setElection(electionData);
 
-      if (token && electionData.resultsAnnounced) {
+      if (token && (electionData.resultsAnnounced || !electionData.isActive)) {
         const resultsData = await getElectionResults(electionId, token);
         setResults(resultsData);
       }
-    } catch (err: any) {
+    } catch (err: any) -> {
       console.error("Failed to fetch initial data:", err);
       setError(err.message || "Could not load election results.");
     } finally {
@@ -97,7 +97,10 @@ export default function ResultsPage() {
         updateStatus();
         console.log("SignalR Connected.");
         connection.invoke("JoinElectionGroup", electionId.toString());
-        connection.invoke("GetLiveResults", electionId);
+        // Only get live results if the election is active
+        if (election?.isActive) {
+          connection.invoke("GetLiveResults", electionId);
+        }
       })
       .catch(err => {
           console.error("SignalR Connection Error: ", err);
@@ -110,7 +113,7 @@ export default function ResultsPage() {
         }
         connection.stop();
     };
-  }, [token, electionId]);
+  }, [token, electionId, election?.isActive]);
 
 
   if (authLoading || loading) {
@@ -151,7 +154,7 @@ export default function ResultsPage() {
         case 'reconnecting':
             return <Badge variant="secondary"><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Reconnecting...</Badge>;
         case 'disconnected':
-            return <Badge variant="destructive"><WifiOff className="mr-2 h-3 w-3" /> Delayed</Badge>;
+            return <Badge variant="destructive"><WifiOff className="mr-2 h-3 w-3" /> Connection Delayed</Badge>;
         default:
             return <Badge variant="outline"><Loader2 className="mr-2 h-3 w-3 animate-spin" /> Connecting...</Badge>;
     }
@@ -172,7 +175,9 @@ export default function ResultsPage() {
         <Card className="mb-8">
           <CardHeader>
              <div className="flex justify-between items-start">
-                 <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
+                 <div className="flex-1">
+                    <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
+                 </div>
                  {getStatusBadge()}
              </div>
             <CardDescription>

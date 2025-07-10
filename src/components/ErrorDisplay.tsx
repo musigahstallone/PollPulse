@@ -13,7 +13,7 @@ export default function ErrorDisplay({
   message,
   onRetry
 }: ErrorDisplayProps) {
-  const isConnectionError = message.toLowerCase().includes('connect');
+  const isConnectionError = message.toLowerCase().includes('connect to the server');
 
   return (
     <div className="flex items-center justify-center p-4">
