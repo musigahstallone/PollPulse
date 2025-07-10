@@ -63,7 +63,7 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!token || !electionId) return;
 
-    // Use environment variable for SignalR hub URL
+    // Use environment variable for SignalR hub URL, constructing it on the client
     const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
 
     const connection = new signalR.HubConnectionBuilder()

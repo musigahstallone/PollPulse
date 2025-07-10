@@ -2,13 +2,19 @@
 
 import type { Election, VoteResult, UserProfile, CastVotePayload, VoteStatus, CreateElectionPayload, Candidate, AddCandidatePayload } from '@/types';
 
-// The base URL is now an empty string because we are using Next.js rewrites
-// to proxy requests from /api to the backend.
+// The base URL for client-side requests is now an empty string, relying on the proxy.
+// Server-side requests will use the full URL from the environment variable.
 const API_BASE_URL = '';
 
 async function fetchWrapper(url: string, options: RequestInit = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api${url}`, {
+    // For server-side rendering/actions, we need the full path.
+    // For client-side, the proxy will handle it.
+    const fetchUrl = typeof window === 'undefined'
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api${url}`
+      : `${API_BASE_URL}/api${url}`;
+
+    const response = await fetch(fetchUrl, {
         ...options,
         headers: {
         'Content-Type': 'application/json',
