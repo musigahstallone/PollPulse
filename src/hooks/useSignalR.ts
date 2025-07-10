@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as signalR from "@microsoft/signalr";
 import type { VoteResult, CastVotePayload } from "@/types";
@@ -78,13 +79,6 @@ export interface SignalRHub {
 
 /** Duration for pulsing animation in milliseconds */
 const PULSE_DURATION = 1000;
-
-/** Retry configuration for connection attempts */
-const RETRY_CONFIG = {
-  maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
-};
 
 // ============================================================================
 // CUSTOM HOOK IMPLEMENTATION
@@ -218,7 +212,6 @@ export function useSignalR(
 
     // Early validation - ensure required parameters are present
     if (!electionId || typeof electionId !== "number") {
-      handleError(new Error("Invalid election ID"), "Validation");
       updateStatus(signalR.HubConnectionState.Disconnected);
       return;
     }
@@ -242,10 +235,11 @@ export function useSignalR(
         const initialResults = await getElectionResults(electionId, token);
         if (isMountedRef.current) {
           setResults(initialResults);
-          setIsLoading(false);
         }
       } catch (error) {
         handleError(error, "Initial Data Fetch");
+      } finally {
+        if(isMountedRef.current) setIsLoading(false);
       }
     };
 
@@ -264,7 +258,7 @@ export function useSignalR(
     const createConnection = () => {
       const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
 
-      if (!hubUrl.includes("http")) {
+      if (!hubUrl || !hubUrl.startsWith("http")) {
         handleError(
           new Error("Invalid API URL configuration"),
           "Configuration"
