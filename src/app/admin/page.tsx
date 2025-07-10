@@ -5,11 +5,54 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Activity, BarChart, HardDrive, Loader2, Users } from 'lucide-react';
 import CreateElectionForm from '@/components/admin/CreateElectionForm';
 import ManageElections from '@/components/admin/ManageElections';
 import VoteRecords from '@/components/admin/VoteRecords';
+
+function DashboardStats() {
+    // This component is a placeholder for now.
+    // It will be connected to a real API endpoint later.
+    const stats = [
+        { title: 'Active Elections', value: '0', icon: BarChart, color: 'text-primary' },
+        { title: 'Online Users', value: '0', icon: Users, color: 'text-green-500' },
+        { title: 'Total Votes Today', value: '0', icon: HardDrive, color: 'text-yellow-500' },
+    ];
+
+    return (
+        <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {stats.map((stat, index) => (
+                    <Card key={index}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                            <stat.icon className={`h-4 w-4 text-muted-foreground ${stat.color}`} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stat.value}</div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+            <div className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Recent Activity</CardTitle>
+                        <CardDescription>A log of recent system events. (Placeholder)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-64 overflow-y-auto">
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            <Activity className="h-8 w-8 mr-4" />
+                            <p>Recent activity will be shown here when the API is connected.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </CardContent>
+    );
+}
+
 
 export default function AdminDashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -49,13 +92,26 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground">Manage elections, candidates, and view voting data.</p>
         </div>
         
-        <Tabs defaultValue="manage-elections">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+        <Tabs defaultValue="dashboard">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="manage-elections">Manage Elections</TabsTrigger>
             <TabsTrigger value="create-election">Create Election</TabsTrigger>
             <TabsTrigger value="vote-records">Vote Records</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="dashboard">
+            <Card>
+                <CardHeader>
+                    <CardTitle>System Overview</CardTitle>
+                    <CardDescription>
+                        A quick look at the current status of the voting system.
+                    </CardDescription>
+                </CardHeader>
+                <DashboardStats />
+            </Card>
+          </TabsContent>
+          
           <TabsContent value="manage-elections">
             <Card>
               <CardHeader>

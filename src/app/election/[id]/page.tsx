@@ -157,7 +157,7 @@ export default function ElectionPage() {
           disabled={hasVoted || !isElectionActive || !isAuthenticated || isVoting}
         >
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {election.candidates.map((candidate: Candidate) => (
+            {election.candidates && election.candidates.map((candidate: Candidate) => (
               <Label key={candidate.id} htmlFor={`candidate-${candidate.id}`} className="block">
                 <Card className={`transition-all duration-200 ${selectedCandidateId === candidate.id ? 'border-primary ring-2 ring-primary shadow-lg' : 'hover:shadow-md'}`}>
                   <CardHeader className="flex flex-row items-center justify-between">
