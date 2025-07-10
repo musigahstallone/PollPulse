@@ -1,0 +1,72 @@
+import type { Election } from '@/types';
+
+export const elections: Election[] = [
+  {
+    id: 1,
+    title: 'Student Government Presidential Election',
+    description: 'Elect the next president for the student government body. The president will represent the student body and advocate for their interests.',
+    startDate: new Date('2024-09-01T09:00:00'),
+    endDate: new Date('2024-12-25T17:00:00'),
+    candidates: [
+      {
+        id: 101,
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        studentId: 'S12345',
+        position: 'President',
+        platform: 'My platform focuses on three key areas: improving campus mental health resources, increasing student involvement in university decisions, and promoting sustainability initiatives across campus. I plan to work with the administration to expand counseling services and create more green spaces for students to relax and study.',
+        electionId: 1,
+        votes: 1520,
+      },
+      {
+        id: 102,
+        firstName: 'Bob',
+        lastName: 'Smith',
+        studentId: 'S67890',
+        position: 'President',
+        platform: 'I am committed to enhancing the academic experience by advocating for more flexible course schedules, better access to research opportunities for undergraduates, and updating library resources. I will also establish a transparent budget for student activity fees.',
+        electionId: 1,
+        votes: 1240,
+      },
+       {
+        id: 103,
+        firstName: 'Charlie',
+        lastName: 'Brown',
+        studentId: 'S54321',
+        position: 'President',
+        platform: 'My goal is to build a stronger campus community. I will organize more inter-departmental social events, create a mentorship program connecting senior and junior students, and fight for more affordable on-campus dining options for everyone.',
+        electionId: 1,
+        votes: 980,
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Engineering Department Representative',
+    description: 'Vote for the student representative for the College of Engineering. This role involves liaising between students and faculty.',
+    startDate: new Date('2024-04-10T09:00:00'),
+    endDate: new Date('2024-04-15T17:00:00'),
+    candidates: [
+      {
+        id: 201,
+        firstName: 'David',
+        lastName: 'Lee',
+        studentId: 'S11223',
+        position: 'Representative',
+        platform: 'As your representative, I will push for updated lab equipment, more TA support for difficult courses, and career workshops tailored to engineering disciplines. I believe in hands-on learning and will work to secure more funding for student-led projects.',
+        electionId: 2,
+        votes: 450,
+      },
+      {
+        id: 202,
+        firstName: 'Emily',
+        lastName: 'Chen',
+        studentId: 'S44556',
+        position: 'Representative',
+        platform: 'I aim to improve the student life within the engineering department by establishing a peer-tutoring network, hosting regular town halls with the dean, and ensuring our curriculum stays relevant with industry trends. Your voice will be heard.',
+        electionId: 2,
+        votes: 620,
+      },
+    ],
+  },
+];

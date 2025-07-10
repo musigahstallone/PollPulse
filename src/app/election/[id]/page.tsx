@@ -1,0 +1,176 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { elections } from '@/lib/data';
+import type { Candidate, Election } from '@/types';
+import Header from '@/components/Header';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { BarChartHorizontalBig, CheckCircle2, Lightbulb, User, Vote, XCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import PlatformImprover from '@/components/PlatformImprover';
+
+export default function ElectionPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [election, setElection] = useState<Election | null>(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const electionId = Number(params.id);
+    const foundElection = elections.find((e) => e.id === electionId);
+    if (foundElection) {
+      setElection(foundElection);
+      const votedStatus = localStorage.getItem(`voted_election_${electionId}`);
+      if (votedStatus) {
+        setHasVoted(true);
+      }
+    }
+  }, [params.id]);
+  
+  const handleVote = () => {
+    if (!selectedCandidateId || !election) return;
+    
+    const selectedCandidate = election.candidates.find(c => c.id === selectedCandidateId);
+    
+    if (selectedCandidate) {
+      localStorage.setItem(`voted_election_${election.id}`, 'true');
+      setHasVoted(true);
+
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <span className="font-bold">Vote Cast Successfully!</span>
+          </div>
+        ),
+        description: `You voted for ${selectedCandidate.firstName} ${selectedCandidate.lastName}.`,
+        duration: 5000,
+      });
+
+      router.push(`/election/${election.id}/results`);
+    }
+  };
+
+  if (!isClient) {
+    return null; // or a loading skeleton
+  }
+
+  if (!election) {
+    return (
+      <>
+        <Header />
+        <main className="container mx-auto p-8 text-center">
+          <XCircle className="mx-auto h-12 w-12 text-destructive" />
+          <h1 className="mt-4 text-2xl font-bold">Election Not Found</h1>
+          <p className="mt-2 text-muted-foreground">The election you are looking for does not exist.</p>
+          <Button asChild className="mt-6">
+            <Link href="/">Back to Elections</Link>
+          </Button>
+        </main>
+      </>
+    );
+  }
+
+  const now = new Date();
+  const isElectionActive = election.startDate <= now && election.endDate >= now;
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1 container mx-auto p-4 md:p-8">
+        <Card className="mb-8 bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-3xl font-headline">{election.title}</CardTitle>
+            <CardDescription>{election.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+             <Button asChild variant="secondary">
+                <Link href={`/election/${election.id}/results`}>
+                    <BarChartHorizontalBig className="mr-2 h-4 w-4" /> View Results
+                </Link>
+             </Button>
+          </CardFooter>
+        </Card>
+
+        {hasVoted && (
+          <Alert variant="default" className="mb-8 border-primary bg-primary/10">
+            <CheckCircle2 className="h-4 w-4 !text-primary" />
+            <AlertTitle>You have already voted!</AlertTitle>
+            <AlertDescription>
+              Thank you for participating in this election. Your voice has been heard.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <RadioGroup
+          value={selectedCandidateId?.toString()}
+          onValueChange={(value) => setSelectedCandidateId(Number(value))}
+          disabled={hasVoted || !isElectionActive}
+        >
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {election.candidates.map((candidate: Candidate) => (
+              <Label key={candidate.id} htmlFor={`candidate-${candidate.id}`} className="block">
+                <Card className={`transition-all duration-200 ${selectedCandidateId === candidate.id ? 'border-primary ring-2 ring-primary shadow-lg' : 'hover:shadow-md'}`}>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        {candidate.firstName} {candidate.lastName}
+                      </CardTitle>
+                      <CardDescription>{candidate.position}</CardDescription>
+                    </div>
+                    <RadioGroupItem value={candidate.id.toString()} id={`candidate-${candidate.id}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">{candidate.platform}</p>
+                     <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="item-1">
+                        <AccordionTrigger className="text-sm font-semibold text-primary hover:no-underline">
+                           <Lightbulb className="mr-2 h-4 w-4"/>
+                           Platform Improvement Suggestions
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           <PlatformImprover platformText={candidate.platform} />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              </Label>
+            ))}
+          </div>
+        </RadioGroup>
+
+        {isElectionActive && !hasVoted && (
+          <div className="mt-8 flex justify-center">
+            <Button size="lg" onClick={handleVote} disabled={!selectedCandidateId}>
+              <Vote className="mr-2 h-5 w-5" />
+              Cast Your Vote
+            </Button>
+          </div>
+        )}
+        
+        {!isElectionActive && !hasVoted && (
+            <Alert variant="destructive" className="mt-8">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Election has ended</AlertTitle>
+                <AlertDescription>
+                    This election is no longer active. Voting is closed.
+                </AlertDescription>
+            </Alert>
+        )}
+      </main>
+    </div>
+  );
+}
