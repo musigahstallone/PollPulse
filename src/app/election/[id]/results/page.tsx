@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound, useParams } from "next/navigation";
@@ -10,16 +10,14 @@ import ResultsDisplay from "@/components/ResultsDisplay";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Hourglass, Lock, Wifi, WifiOff } from "lucide-react";
-import { getElectionById, getElectionResults } from "@/lib/api";
+import { getElectionById } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import * as signalR from "@microsoft/signalr";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorDisplay from "@/components/ErrorDisplay";
 import { cn } from "@/lib/utils";
-
-type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+import { useSignalR } from "@/hooks/useSignalR";
 
 export default function ResultsPage() {
   const params = useParams();
@@ -27,14 +25,15 @@ export default function ResultsPage() {
   const electionId = Number(params.id);
 
   const [election, setElection] = useState<Election | null>(null);
-  const [results, setResults] = useState<VoteResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const [isPulsing, setIsPulsing] = useState(false);
-  const connectionRef = useRef<signalR.HubConnection | null>(null);
+  const [initialFetchError, setInitialFetchError] = useState<string | null>(null);
 
+  const { results, connectionStatus, isPulsing } = useSignalR(electionId, token, election?.isActive);
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 5eac6b4 (do this show vote counts)
   const fetchInitialData = useCallback(async () => {
     if (isNaN(electionId)) {
       notFound();
@@ -46,18 +45,13 @@ export default function ResultsPage() {
     }
 
     setLoading(true);
-    setError(null);
+    setInitialFetchError(null);
     try {
       const electionData = await getElectionById(electionId, token);
       setElection(electionData);
-
-      if (electionData.resultsAnnounced || !electionData.isActive) {
-        const resultsData = await getElectionResults(electionId, token);
-        setResults(resultsData);
-      }
     } catch (err: any) {
       console.error("Failed to fetch initial data:", err);
-      setError(err.message || "Could not load election results.");
+      setInitialFetchError(err.message || "Could not load election results.");
     } finally {
       setLoading(false);
     }
@@ -69,6 +63,7 @@ export default function ResultsPage() {
     }
   }, [electionId, authLoading, fetchInitialData]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL || !election) return;
 
@@ -136,6 +131,8 @@ export default function ResultsPage() {
   }, [token, electionId, election]);
 
 
+=======
+>>>>>>> 5eac6b4 (do this show vote counts)
   if (authLoading || loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -147,6 +144,7 @@ export default function ResultsPage() {
     );
   }
 
+<<<<<<< HEAD
   if (error || !election) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -160,6 +158,21 @@ export default function ResultsPage() {
         </main>
       </div>
     )
+=======
+  if (initialFetchError || !election) {
+      return (
+          <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-1 container mx-auto p-4 md:p-8">
+                  <ErrorDisplay 
+                    title="Could not load results"
+                    message={initialFetchError || "An unknown error occurred while fetching election results."}
+                    onRetry={fetchInitialData}
+                  />
+              </main>
+          </div>
+      )
+>>>>>>> 5eac6b4 (do this show vote counts)
   }
 
   const now = new Date();
@@ -194,12 +207,21 @@ export default function ResultsPage() {
         </div>
         <Card className="mb-8">
           <CardHeader>
+<<<<<<< HEAD
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <CardTitle>Results: {election.title}</CardTitle>
               </div>
               {getStatusBadge()}
             </div>
+=======
+             <div className="flex justify-between items-start">
+                 <div className="flex-1">
+                    <CardTitle>Results: {election.title}</CardTitle>
+                 </div>
+                 {election.isActive && getStatusBadge()}
+             </div>
+>>>>>>> 5eac6b4 (do this show vote counts)
             <CardDescription>
               {isElectionFinished
                 ? `This election has concluded. A total of ${totalVotes.toLocaleString()} votes were cast.`

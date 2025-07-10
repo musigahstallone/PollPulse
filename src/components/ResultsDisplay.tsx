@@ -4,7 +4,7 @@ import type { VoteResult, Election } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, TrendingUp, Users } from "lucide-react";
+import { Trophy, TrendingUp } from "lucide-react";
 
 interface ResultsDisplayProps {
   results: VoteResult[];
@@ -38,18 +38,20 @@ export default function ResultsDisplay({ results, election, showLeaderOnly = fal
                         <TableRow>
                             <TableHead>Rank</TableHead>
                             <TableHead>Candidate</TableHead>
+                            <TableHead className="text-right">Votes</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {chartData.map((result, index) => (
-                            <TableRow key={result.name} className={index === 0 ? "bg-accent/10" : ""}>
-                            <TableCell className="font-medium">{index + 1}</TableCell>
-                            <TableCell>{result.name}</TableCell>
+                            <TableRow key={result.name} className={index === 0 ? "bg-accent" : ""}>
+                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                <TableCell>{result.name}</TableCell>
+                                <TableCell className="text-right font-semibold">{result.votes.toLocaleString()}</TableCell>
                             </TableRow>
                         ))}
                         {chartData.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center">No votes have been cast yet.</TableCell>
+                                <TableCell colSpan={3} className="text-center">No votes have been cast yet.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -77,8 +79,8 @@ export default function ResultsDisplay({ results, election, showLeaderOnly = fal
         <div className="grid md:grid-cols-2 gap-8">
             <Card>
                 <CardHeader>
-                <CardTitle>Vote Distribution</CardTitle>
-                <CardDescription>Visual breakdown of the vote share.</CardDescription>
+                  <CardTitle>Vote Distribution</CardTitle>
+                  <CardDescription>Visual breakdown of the vote share.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -114,8 +116,8 @@ export default function ResultsDisplay({ results, election, showLeaderOnly = fal
 
             <Card>
                 <CardHeader>
-                <CardTitle>Detailed Results</CardTitle>
-                <CardDescription>The final vote count for each candidate.</CardDescription>
+                  <CardTitle>Detailed Results</CardTitle>
+                  <CardDescription>The final vote count for each candidate.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Table>
@@ -128,10 +130,10 @@ export default function ResultsDisplay({ results, election, showLeaderOnly = fal
                     </TableHeader>
                     <TableBody>
                     {chartData.map((result, index) => (
-                        <TableRow key={result.name} className={index === 0 ? "bg-accent/10" : ""}>
-                        <TableCell className="font-medium">{index + 1}. {result.name}</TableCell>
-                        <TableCell className="text-right">{result.votes.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{result.percentage.toFixed(2)}%</TableCell>
+                        <TableRow key={result.name} className={index === 0 ? "bg-accent" : ""}>
+                          <TableCell className="font-medium">{index + 1}. {result.name}</TableCell>
+                          <TableCell className="text-right">{result.votes.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">{result.percentage.toFixed(2)}%</TableCell>
                         </TableRow>
                     ))}
                     </TableBody>
