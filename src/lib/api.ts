@@ -1,5 +1,3 @@
-
-
 "use server";
 
 import type {
@@ -50,7 +48,11 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
 
     return response.json();
   } catch (error: any) {
-    if (error.cause?.code === "ECONNREFUSED" || error.cause?.code === 'ECONNRESET' || error instanceof TypeError) {
+    if (
+      error.cause?.code === "ECONNREFUSED" ||
+      error.cause?.code === "ECONNRESET" ||
+      error instanceof TypeError
+    ) {
       console.error("Network Error:", error);
       throw new Error(
         "Could not connect to the server. Please check your network connection or contact an administrator."
@@ -171,7 +173,7 @@ export async function getAllElections(
   // Updated to use the correct endpoint that matches GetAllElectionsAsync for admins
   return fetchWrapper("/api/Election/all", {
     method: "GET",
-    headers,
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
@@ -183,7 +185,7 @@ export async function getElectionById(
   // This endpoint matches GetElectionByIdAsync
   return fetchWrapper(`/api/Election/${id}`, {
     method: "GET",
-    headers,
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
