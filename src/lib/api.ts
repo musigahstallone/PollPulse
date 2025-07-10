@@ -9,6 +9,8 @@ import type {
   CreateElectionPayload,
   Candidate,
   AddCandidatePayload,
+  LoginRequest,
+  RegisterRequest,
 } from "@/types";
 
 // The base URL for all API requests, loaded from environment variables.
@@ -64,14 +66,14 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
 }
 
 // Auth Endpoints
-export async function login(credentials: any) {
+export async function login(credentials: LoginRequest): Promise<{ token: string }> {
   return fetchWrapper("/api/Auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
 }
 
-export async function register(userData: any) {
+export async function register(userData: RegisterRequest): Promise<{ token: string }> {
   return fetchWrapper("/api/Auth/register", {
     method: "POST",
     body: JSON.stringify(userData),
