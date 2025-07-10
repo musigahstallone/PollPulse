@@ -1,6 +1,6 @@
 'use server';
 
-import type { Election, VoteResult, UserProfile, CastVotePayload, VoteStatus } from '@/types';
+import type { Election, VoteResult, UserProfile, CastVotePayload, VoteStatus, CreateElectionPayload, Candidate, AddCandidatePayload } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -45,21 +45,64 @@ export async function getProfile(token: string): Promise<UserProfile> {
     });
 }
 
-// Election Endpoints
+// Election Management Endpoints (Admin)
+export async function createElection(payload: CreateElectionPayload, token: string): Promise<Election> {
+    return fetchWrapper('/api/election', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+}
+
+export async function startElection(electionId: number, token: string): Promise<{ message: string, election: Election }> {
+    return fetchWrapper(`/api/election/${electionId}/start`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+}
+
+export async function stopElection(electionId: number, token: string): Promise<{ message: string, election: Election }> {
+    return fetchWrapper(`/api/election/${electionId}/stop`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+}
+
+export async function addCandidate(payload: AddCandidatePayload, token: string): Promise<Candidate> {
+    return fetchWrapper('/api/election/candidates', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+}
+
+// Public Election Endpoints
+export async function getAllElections(token?: string | null): Promise<Election[]> {
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  // Assuming the backend has an endpoint to get all elections.
+  // The provided doc has /api/election/active. We might need a new one for admins.
+  // For now, let's use the active one, but this might need adjustment.
+  return fetchWrapper('/api/election/active', { headers });
+}
+
+
 export async function getActiveElections(): Promise<Election[]> {
   return fetchWrapper('/api/election/active');
 }
 
 export async function getElectionById(id: number): Promise<Election> {
+    // This function might need a token if it's supposed to fetch non-active elections for admins
     const elections = await getActiveElections();
     const election = elections.find(e => e.id === id);
     if (!election) {
-        throw new Error('Election not found');
+        // A better approach would be a dedicated /api/election/{id} endpoint.
+        // Since it's not in the spec, we simulate it this way.
+        throw new Error('Election not found or is not active');
     }
     return election;
 }
 
-export async function getCandidatesForElection(electionId: number) {
+export async function getCandidatesForElection(electionId: number): Promise<Candidate[]> {
     return fetchWrapper(`/api/election/${electionId}/candidates`);
 }
 

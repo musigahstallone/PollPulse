@@ -6,7 +6,8 @@ export interface Candidate {
   position: string;
   platform: string;
   electionId: number;
-  votes: number; // This might come from results endpoint
+  votes?: number; // This might come from results endpoint
+  isActive?: boolean;
 }
 
 export interface Election {
@@ -43,4 +44,20 @@ export interface CastVotePayload {
 
 export interface VoteStatus {
     hasVoted: boolean;
+}
+
+export interface CreateElectionPayload {
+    title: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+}
+
+export interface AddCandidatePayload {
+    firstName: string;
+    lastName: string;
+    studentId: string;
+    position: string;
+    platform?: string;
+    electionId: number;
 }

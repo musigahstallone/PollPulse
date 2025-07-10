@@ -30,14 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setUser(null);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       }
     }
   }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+      // Use sessionStorage instead of localStorage
+      const storedToken = sessionStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
         await fetchUser(storedToken);
@@ -48,13 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const login = async (newToken: string) => {
-    localStorage.setItem('token', newToken);
+    sessionStorage.setItem('token', newToken);
     setToken(newToken);
     await fetchUser(newToken);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
   };

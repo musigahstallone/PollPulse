@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { LogIn, LogOut, ShieldCheck, User } from 'lucide-react';
+import { LogIn, LogOut, ShieldCheck, User, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -36,6 +36,15 @@ export default function Header() {
                     <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {user?.role === 'Admin' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Admin Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
