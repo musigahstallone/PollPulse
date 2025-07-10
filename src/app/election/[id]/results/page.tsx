@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from "react";
@@ -57,9 +58,11 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!token || !electionId) return;
 
+    // Use environment variable for SignalR hub URL
+    const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
+
     const connection = new signalR.HubConnectionBuilder()
-      // Note: The URL is now relative because of the Next.js proxy
-      .withUrl(`/votehub`, {
+      .withUrl(hubUrl, {
         accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
