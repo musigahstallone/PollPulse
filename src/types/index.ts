@@ -6,15 +6,16 @@ export interface Candidate {
   position: string;
   platform: string;
   electionId: number;
-  votes: number;
+  votes: number; // This might come from results endpoint
 }
 
 export interface Election {
   id: number;
   title: string;
   description: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string; // ISO 8601 string
+  endDate: string; // ISO 8601 string
+  isActive: boolean;
   candidates: Candidate[];
 }
 
@@ -24,4 +25,22 @@ export interface VoteResult {
   position: string;
   voteCount: number;
   percentage: number;
+}
+
+export interface UserProfile {
+  id: number;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'Student' | 'Admin';
+}
+
+export interface CastVotePayload {
+    electionId: number;
+    candidateId: number;
+}
+
+export interface VoteStatus {
+    hasVoted: boolean;
 }

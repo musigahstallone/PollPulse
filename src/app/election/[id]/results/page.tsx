@@ -1,32 +1,97 @@
-import { elections } from "@/lib/data";
+'use client';
+
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { notFound } from "next/navigation";
-import type { VoteResult, Candidate } from "@/types";
+import { notFound, useParams } from "next/navigation";
+import type { VoteResult, Election, Candidate } from "@/types";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { getElectionById, getElectionResults } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import * as signalR from "@microsoft/signalr";
+
+export default function ResultsPage() {
+  const params = useParams();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
+  const electionId = Number(params.id);
+
+  const [election, setElection] = useState<Election | null>(null);
+  const [results, setResults] = useState<VoteResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (isNaN(electionId)) {
+        notFound();
+        return;
+    }
+    
+    if(!authLoading) {
+      const fetchInitialData = async () => {
+        try {
+          const electionData = await getElectionById(electionId);
+          setElection(electionData);
+
+          if (token) {
+              const resultsData = await getElectionResults(electionId, token);
+              setResults(resultsData);
+          }
+        } catch (error) {
+          console.error("Failed to fetch initial data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchInitialData();
+    }
+  }, [electionId, token, authLoading]);
+
+  useEffect(() => {
+    if (!token || !electionId) return;
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_API_BASE_URL}/votehub`, {
+        accessTokenFactory: () => token
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("ReceiveResults", (newResults: VoteResult[]) => {
+      setResults(newResults);
+    });
+
+    connection.start()
+      .then(() => {
+        console.log("SignalR Connected.");
+        connection.invoke("JoinElectionGroup", electionId);
+        connection.invoke("GetLiveResults", electionId);
+      })
+      .catch(err => console.error("SignalR Connection Error: ", err));
+
+    return () => {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            connection.invoke("LeaveElectionGroup", electionId).catch(err => console.log(err));
+            connection.stop();
+        }
+    };
+  }, [token, electionId]);
 
 
-export default function ResultsPage({ params }: { params: { id: string } }) {
-  const election = elections.find((e) => e.id === Number(params.id));
+  if (authLoading || loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!election) {
     notFound();
   }
 
-  const totalVotes = election.candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-
-  const results: VoteResult[] = election.candidates
-    .map((candidate: Candidate) => ({
-      candidateId: candidate.id,
-      candidateName: `${candidate.firstName} ${candidate.lastName}`,
-      position: candidate.position,
-      voteCount: candidate.votes,
-      percentage: totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0,
-    }))
-    .sort((a, b) => b.voteCount - a.voteCount);
+  const totalVotes = results.reduce((sum, result) => sum + result.voteCount, 0);
 
   return (
     <div className="flex flex-col min-h-screen">
