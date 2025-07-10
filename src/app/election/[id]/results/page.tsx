@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound, useParams } from "next/navigation";
@@ -30,6 +30,8 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
   
   const fetchInitialData = useCallback(async () => {
     if (isNaN(electionId)) {
@@ -42,7 +44,7 @@ export default function ResultsPage() {
       const electionData = await getElectionById(electionId, token);
       setElection(electionData);
 
-      if (token && (electionData.resultsAnnounced || !electionData.isActive)) {
+      if (electionData.resultsAnnounced || !electionData.isActive) {
         const resultsData = await getElectionResults(electionId, token);
         setResults(resultsData);
       }
@@ -61,17 +63,21 @@ export default function ResultsPage() {
   }, [electionId, authLoading, fetchInitialData]);
 
   useEffect(() => {
-    if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL) return;
+    if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL || !election) return;
 
-    // Use environment variable for SignalR hub URL
+    // Only set up connection once
+    if (connectionRef.current) return;
+
     const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
 
-    const connection = new signalR.HubConnectionBuilder()
+    const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
         accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
       .build();
+
+    connectionRef.current = newConnection;
 
     const updateStatus = () => {
         const stateMap: Record<signalR.HubConnectionState, ConnectionStatus> = {
@@ -81,25 +87,34 @@ export default function ResultsPage() {
             [signalR.HubConnectionState.Reconnecting]: 'reconnecting',
             [signalR.HubConnectionState.Disconnecting]: 'disconnected',
         };
-        setConnectionStatus(stateMap[connection.state]);
+        setConnectionStatus(stateMap[newConnection.state]);
     };
 
-    connection.on("ReceiveResults", (newResults: VoteResult[]) => {
+    newConnection.on("ReceiveResults", (newResults: VoteResult[]) => {
       setResults(newResults);
     });
     
-    connection.onreconnecting(() => updateStatus());
-    connection.onreconnected(() => updateStatus());
-    connection.onclose(() => updateStatus());
+    newConnection.onreconnecting(() => updateStatus());
+    newConnection.onreconnected(() => {
+        updateStatus();
+        // Re-join group and get results on successful reconnect
+        newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error re-joining group:", err));
+        if (election.isActive) {
+          newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results on reconnect:", err));
+        }
+    });
+    newConnection.onclose(() => updateStatus());
 
-    connection.start()
+    newConnection.start()
       .then(() => {
         updateStatus();
         console.log("SignalR Connected.");
-        connection.invoke("JoinElectionGroup", electionId.toString());
-        // Only get live results if the election is active
-        if (election?.isActive) {
-          connection.invoke("GetLiveResults", electionId);
+        // Pass electionId as a number
+        newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error joining group:", err));
+        
+        if (election.isActive) {
+          // Pass electionId as a number
+          newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results:", err));
         }
       })
       .catch(err => {
@@ -108,12 +123,12 @@ export default function ResultsPage() {
       });
 
     return () => {
-        if (connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("LeaveElectionGroup", electionId.toString()).catch(err => console.log(err));
+        if (connectionRef.current) {
+            connectionRef.current.stop().then(() => console.log("SignalR connection stopped."));
+            connectionRef.current = null;
         }
-        connection.stop();
     };
-  }, [token, electionId, election?.isActive]);
+  }, [token, electionId, election]);
 
 
   if (authLoading || loading) {
@@ -176,7 +191,7 @@ export default function ResultsPage() {
           <CardHeader>
              <div className="flex justify-between items-start">
                  <div className="flex-1">
-                    <CardTitle className="text-3xl font-headline">Results: {election.title}</CardTitle>
+                    <CardTitle>Results: {election.title}</CardTitle>
                  </div>
                  {getStatusBadge()}
              </div>
