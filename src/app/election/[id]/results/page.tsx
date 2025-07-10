@@ -46,7 +46,7 @@ export default function ResultsPage() {
         const resultsData = await getElectionResults(electionId, token);
         setResults(resultsData);
       }
-    } catch (err: any) -> {
+    } catch (err: any) {
       console.error("Failed to fetch initial data:", err);
       setError(err.message || "Could not load election results.");
     } finally {
