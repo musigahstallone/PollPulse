@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { notFound, useParams } from "next/navigation";
-import type { VoteResult, Election } from "@/types";
+import type { Election } from "@/types";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,19 +30,19 @@ export default function ResultsPage() {
 
   const { results, connectionStatus, isPulsing } = useSignalR(electionId, token, election?.isActive);
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 5eac6b4 (do this show vote counts)
   const fetchInitialData = useCallback(async () => {
     if (isNaN(electionId)) {
       notFound();
       return;
     }
 
-    if (token === null || token === undefined) {
-      notFound();
+    if (!authLoading && token === null) {
+        setInitialFetchError("Authentication required to view this page.");
+        setLoading(false);
+        return;
     }
+    
+    if (authLoading) return;
 
     setLoading(true);
     setInitialFetchError(null);
@@ -55,84 +55,12 @@ export default function ResultsPage() {
     } finally {
       setLoading(false);
     }
-  }, [electionId, token]);
+  }, [electionId, token, authLoading]);
 
   useEffect(() => {
-    if (!authLoading) {
-      fetchInitialData();
-    }
-  }, [electionId, authLoading, fetchInitialData]);
+    fetchInitialData();
+  }, [fetchInitialData]);
 
-<<<<<<< HEAD
-  useEffect(() => {
-    if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL || !election) return;
-
-    if (connectionRef.current) return;
-
-    const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
-
-    const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, {
-        accessTokenFactory: () => token
-      })
-      .withAutomaticReconnect()
-      .build();
-
-    connectionRef.current = newConnection;
-
-    const updateStatus = () => {
-      const stateMap: Record<signalR.HubConnectionState, ConnectionStatus> = {
-        [signalR.HubConnectionState.Connecting]: 'connecting',
-        [signalR.HubConnectionState.Connected]: 'connected',
-        [signalR.HubConnectionState.Disconnected]: 'disconnected',
-        [signalR.HubConnectionState.Reconnecting]: 'reconnecting',
-        [signalR.HubConnectionState.Disconnecting]: 'disconnected',
-      };
-      setConnectionStatus(stateMap[newConnection.state]);
-    };
-
-    newConnection.on("ReceiveResults", (newResults: VoteResult[]) => {
-      setResults(newResults);
-      setIsPulsing(true);
-      setTimeout(() => setIsPulsing(false), 1000);
-    });
-
-    newConnection.onreconnecting(() => updateStatus());
-    newConnection.onreconnected(() => {
-      updateStatus();
-      newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error re-joining group:", err));
-      if (election.isActive) {
-        newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results on reconnect:", err));
-      }
-    });
-    newConnection.onclose(() => updateStatus());
-
-    newConnection.start()
-      .then(() => {
-        updateStatus();
-        console.log("SignalR Connected.");
-        newConnection.invoke("JoinElectionGroup", electionId).catch(err => console.error("Error joining group:", err));
-
-        if (election.isActive) {
-          newConnection.invoke("GetLiveResults", electionId).catch(err => console.error("Error getting live results:", err));
-        }
-      })
-      .catch(err => {
-        console.error("SignalR Connection Error: ", err);
-        updateStatus();
-      });
-
-    return () => {
-      if (connectionRef.current) {
-        connectionRef.current.stop().then(() => console.log("SignalR connection stopped."));
-        connectionRef.current = null;
-      }
-    };
-  }, [token, electionId, election]);
-
-
-=======
->>>>>>> 5eac6b4 (do this show vote counts)
   if (authLoading || loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -144,21 +72,6 @@ export default function ResultsPage() {
     );
   }
 
-<<<<<<< HEAD
-  if (error || !election) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 container mx-auto p-4 md:p-8">
-          <ErrorDisplay
-            title="Could not load results"
-            message={error || "An unknown error occurred while fetching election results."}
-            onRetry={fetchInitialData}
-          />
-        </main>
-      </div>
-    )
-=======
   if (initialFetchError || !election) {
       return (
           <div className="flex flex-col min-h-screen">
@@ -172,7 +85,6 @@ export default function ResultsPage() {
               </main>
           </div>
       )
->>>>>>> 5eac6b4 (do this show vote counts)
   }
 
   const now = new Date();
@@ -207,21 +119,12 @@ export default function ResultsPage() {
         </div>
         <Card className="mb-8">
           <CardHeader>
-<<<<<<< HEAD
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <CardTitle>Results: {election.title}</CardTitle>
-              </div>
-              {getStatusBadge()}
-            </div>
-=======
              <div className="flex justify-between items-start">
                  <div className="flex-1">
                     <CardTitle>Results: {election.title}</CardTitle>
                  </div>
                  {election.isActive && getStatusBadge()}
              </div>
->>>>>>> 5eac6b4 (do this show vote counts)
             <CardDescription>
               {isElectionFinished
                 ? `This election has concluded. A total of ${totalVotes.toLocaleString()} votes were cast.`
