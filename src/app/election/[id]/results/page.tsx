@@ -42,7 +42,7 @@ export default function ResultsPage() {
       const electionData = await getElectionById(electionId, token);
       setElection(electionData);
 
-      if (token) {
+      if (token && electionData.resultsAnnounced) {
         const resultsData = await getElectionResults(electionId, token);
         setResults(resultsData);
       }
@@ -61,9 +61,9 @@ export default function ResultsPage() {
   }, [electionId, authLoading, fetchInitialData]);
 
   useEffect(() => {
-    if (!token || !electionId) return;
+    if (!token || !electionId || !process.env.NEXT_PUBLIC_API_URL) return;
 
-    // Use environment variable for SignalR hub URL, constructing it on the client
+    // Use environment variable for SignalR hub URL
     const hubUrl = `${process.env.NEXT_PUBLIC_API_URL}/votehub`;
 
     const connection = new signalR.HubConnectionBuilder()
@@ -96,7 +96,7 @@ export default function ResultsPage() {
       .then(() => {
         updateStatus();
         console.log("SignalR Connected.");
-        connection.invoke("JoinElectionGroup", electionId);
+        connection.invoke("JoinElectionGroup", electionId.toString());
         connection.invoke("GetLiveResults", electionId);
       })
       .catch(err => {
@@ -106,9 +106,9 @@ export default function ResultsPage() {
 
     return () => {
         if (connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("LeaveElectionGroup", electionId).catch(err => console.log(err));
-            connection.stop();
+            connection.invoke("LeaveElectionGroup", electionId.toString()).catch(err => console.log(err));
         }
+        connection.stop();
     };
   }, [token, electionId]);
 
@@ -195,7 +195,8 @@ export default function ResultsPage() {
                 </AlertDescription>
             </Alert>
         ) : (
-            <Alert variant="default" className="border-accent">
+            <>
+            <Alert variant="default" className="border-accent mb-8">
                 <Lock className="h-4 w-4 text-accent-foreground" />
                 <AlertTitle>Live Tally in Progress</AlertTitle>
                 <AlertDescription>
@@ -203,9 +204,9 @@ export default function ResultsPage() {
                     For now, you can see a live leaderboard of the candidates.
                 </AlertDescription>
             </Alert>
+            <ResultsDisplay results={results} election={election} showLeaderOnly={true} />
+            </>
         )}
-
-        {!showFullResults && <ResultsDisplay results={results} election={election} showLeaderOnly={true} />}
       </main>
     </div>
   );

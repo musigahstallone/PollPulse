@@ -50,28 +50,28 @@ async function fetchWrapper(url: string, options: RequestInit = {}) {
 
 // Auth Endpoints
 export async function login(credentials: any) {
-    return fetchWrapper('/auth/login', {
+    return fetchWrapper('/Auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials)
     });
 }
 
 export async function register(userData: any) {
-    return fetchWrapper('/auth/register', {
+    return fetchWrapper('/Auth/register', {
         method: 'POST',
         body: JSON.stringify(userData)
     });
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {
-    return fetchWrapper('/auth/profile', {
+    return fetchWrapper('/Auth/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 }
 
 // Election Management Endpoints (Admin)
 export async function createElection(payload: CreateElectionPayload, token: string): Promise<Election> {
-    return fetchWrapper('/election', {
+    return fetchWrapper('/Election', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -79,21 +79,21 @@ export async function createElection(payload: CreateElectionPayload, token: stri
 }
 
 export async function startElection(electionId: number, token: string): Promise<{ message: string, election: Election }> {
-    return fetchWrapper(`/election/${electionId}/start`, {
+    return fetchWrapper(`/Election/${electionId}/start`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
     });
 }
 
 export async function stopElection(electionId: number, token: string): Promise<{ message: string, election: Election }> {
-    return fetchWrapper(`/election/${electionId}/stop`, {
+    return fetchWrapper(`/Election/${electionId}/stop`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
     });
 }
 
 export async function addCandidate(payload: AddCandidatePayload, token: string): Promise<Candidate> {
-    return fetchWrapper('/election/candidates', {
+    return fetchWrapper('/Election/candidates', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -102,8 +102,8 @@ export async function addCandidate(payload: AddCandidatePayload, token: string):
 
 export async function announceResults(electionId: number, token: string): Promise<{ message: string }> {
     // This endpoint is not in the spec, but we add it for the frontend functionality.
-    // The backend would need to implement POST /api/election/{electionId}/announce
-    return fetchWrapper(`/election/${electionId}/announce`, {
+    // The backend would need to implement POST /api/Election/{electionId}/announce
+    return fetchWrapper(`/Election/${electionId}/announce`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -112,29 +112,29 @@ export async function announceResults(electionId: number, token: string): Promis
 // Public Election Endpoints
 export async function getAllElections(token?: string | null): Promise<Election[]> {
   const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-  // The backend spec doesn't have a /api/election/all endpoint.
+  // The backend spec doesn't have a /api/Election/all endpoint.
   // We assume one exists for admins. If not, this needs to be created on the backend.
-  return fetchWrapper('/election/all', { headers });
+  return fetchWrapper('/Election/all', { headers });
 }
 
 export async function getActiveElections(): Promise<Election[]> {
-  return fetchWrapper('/election/active');
+  return fetchWrapper('/Election/active');
 }
 
 export async function getElectionById(id: number, token?: string | null): Promise<Election> {
     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-    // A dedicated /api/election/{id} endpoint is better.
-    return fetchWrapper(`/election/${id}`, { headers });
+    // A dedicated /api/Election/{id} endpoint is better.
+    return fetchWrapper(`/Election/${id}`, { headers });
 }
 
 export async function getCandidatesForElection(electionId: number): Promise<Candidate[]> {
-    return fetchWrapper(`/election/${electionId}/candidates`);
+    return fetchWrapper(`/Election/${electionId}/candidates`);
 }
 
 
 // Voting Endpoints
 export async function castVote(payload: CastVotePayload, token: string) {
-    return fetchWrapper('/voting/cast', {
+    return fetchWrapper('/Voting/cast', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -142,13 +142,13 @@ export async function castVote(payload: CastVotePayload, token: string) {
 }
 
 export async function getElectionResults(electionId: number, token: string): Promise<VoteResult[]> {
-    return fetchWrapper(`/voting/results/${electionId}`, {
+    return fetchWrapper(`/Voting/results/${electionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 }
 
 export async function checkVoteStatus(electionId: number, token:string): Promise<VoteStatus> {
-    return fetchWrapper(`/voting/check-vote-status/${electionId}`, {
+    return fetchWrapper(`/Voting/check-vote-status/${electionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 }
