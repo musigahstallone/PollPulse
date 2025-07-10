@@ -21,6 +21,7 @@ export interface Election {
 }
 
 export interface VoteResult {
+  id: number;
   candidateId: number;
   candidateName: string;
   position: string;
@@ -34,30 +35,30 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'Student' | 'Admin';
+  role: "Student" | "Admin";
 }
 
 export interface CastVotePayload {
-    electionId: number;
-    candidateId: number;
+  electionId: number;
+  candidateId: number;
 }
 
 export interface VoteStatus {
-    hasVoted: boolean;
+  hasVoted: boolean;
 }
 
 export interface CreateElectionPayload {
-    title: string;
-    description?: string;
-    startDate: string;
-    endDate: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface AddCandidatePayload {
-    firstName: string;
-    lastName: string;
-    studentId: string;
-    position: string;
-    platform?: string;
-    electionId: number;
+  firstName: string;
+  lastName: string;
+  studentId: string;
+  position: string;
+  platform?: string;
+  electionId: number;
 }
